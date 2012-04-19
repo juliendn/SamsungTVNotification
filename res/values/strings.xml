@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">Hello World, SamsungTVNotificationActivity!</string>
     <string name="app_name">SamsungTVNotification</string>
+    
+    <string name="notification_ticker">Starting service</string>
+    <string name="notification_title">SamsungTVNotfication</string>
+    <string name="notification_text">Service in started</string>
 
 </resources>
