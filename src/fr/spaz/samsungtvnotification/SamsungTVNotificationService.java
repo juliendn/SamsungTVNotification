@@ -25,7 +25,6 @@ import org.teleal.cling.support.messagebox.model.NumberName;
 
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -48,6 +47,7 @@ public class SamsungTVNotificationService extends android.app.Service
 	private static final String TAG = "SamsungTVNotificationService";
 	private static final String SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED";
 	private static final int NOTIF_ID = 0;
+//	private static final int SEARCH_TIME = 10000;
 
 	private ArrayList<Device<?, ?, ?>> mList;
 	private UPnPBrowseRegistryListener mListener;
@@ -55,12 +55,12 @@ public class SamsungTVNotificationService extends android.app.Service
 	private AndroidUpnpService mUpnpService;
 
 	private EventReceiver mReceiver;
-
+	
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId)
+	public void onCreate()
 	{
-		Log.i(TAG, "Start service");
-
+		Log.i(TAG, "create service");
+		
 		mList = new ArrayList<Device<?, ?, ?>>();
 
 		mListener = new UPnPBrowseRegistryListener();
@@ -78,17 +78,47 @@ public class SamsungTVNotificationService extends android.app.Service
 		registerReceiver(mReceiver, filter);
 
 		showNotification(0);
+	}
 
+	@Override
+	public int onStartCommand(Intent intent, int flags, int startId)
+	{
 		return START_STICKY;
+	}
+
+	@Override
+	public void onDestroy()
+	{
+		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		notifMnger.cancel(NOTIF_ID);
+	
+		Log.i(TAG, "Stop service");
+		if (null != mServiceConnection)
+		{
+			getApplicationContext().unbindService(mServiceConnection);
+			mServiceConnection = null;
+		}
+		if (null != mReceiver)
+		{
+			unregisterReceiver(mReceiver);
+			mReceiver = null;
+		}
+		super.onDestroy();
+	}
+
+	@Override
+	public IBinder onBind(Intent arg0)
+	{
+		return null;
 	}
 
 	private void showNotification(int count)
 	{
 		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//		final Intent intent = new Intent(this, SamsungTVNotificationActivity.class);
-//		final PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
+		// final Intent intent = new Intent(this, SamsungTVNotificationActivity.class);
+		// final PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
 
-		if(count == 0)
+		if (count == 0)
 		{
 			Notification notification = new Notification.Builder(this)
 					.setSmallIcon(R.drawable.notif_disconnected)
@@ -110,38 +140,13 @@ public class SamsungTVNotificationService extends android.app.Service
 					.setTicker(getString(R.string.notification_ticker))
 					.setWhen(0l)
 					.getNotification();
-			notifMnger.notify(NOTIF_ID, notification);	
+			notifMnger.notify(NOTIF_ID, notification);
 		}
-	}
-
-	@Override
-	public void onDestroy()
-	{
-		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		notifMnger.cancel(NOTIF_ID);
-
-		Log.i(TAG, "Stop service");
-		if (null != mServiceConnection)
-		{
-			getApplicationContext().unbindService(mServiceConnection);
-			mServiceConnection = null;
-		}
-		if (null != mReceiver)
-		{
-			unregisterReceiver(mReceiver);
-			mReceiver = null;
-		}
-		super.onDestroy();
-	}
-
-	@Override
-	public IBinder onBind(Intent arg0)
-	{
-		return null;
 	}
 
 	private class UPnPBrowseServiceConnection implements ServiceConnection
 	{
+
 		@Override
 		public void onServiceConnected(ComponentName className, IBinder service)
 		{
@@ -157,6 +162,7 @@ public class SamsungTVNotificationService extends android.app.Service
 			mUpnpService.getRegistry().addListener(mListener);
 
 			// Search asynchronously for all devices
+			// mUpnpService.getControlPoint().search(SEARCH_TIME);
 			mUpnpService.getControlPoint().search();
 		}
 
@@ -299,12 +305,14 @@ public class SamsungTVNotificationService extends android.app.Service
 				mUpnpService.getControlPoint().execute(new AddMessage(service, msg)
 				{
 
+					@SuppressWarnings("rawtypes")
 					@Override
 					public void success(ActionInvocation invocation)
 					{
 						Log.i(TAG, "success");
 					}
 
+					@SuppressWarnings("rawtypes")
 					@Override
 					public void failure(ActionInvocation invocation, UpnpResponse operation, String defaultMsg)
 					{
@@ -318,7 +326,6 @@ public class SamsungTVNotificationService extends android.app.Service
 	public class UPnPBrowseRegistryListener extends DefaultRegistryListener
 	{
 
-		@SuppressWarnings("unused")
 		private static final String TAG = "UpnpBrowseRegistryListener";
 
 		@Override
