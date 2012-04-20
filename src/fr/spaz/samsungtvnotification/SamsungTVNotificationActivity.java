@@ -1,8 +1,6 @@
 package fr.spaz.samsungtvnotification;
 
-import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -16,7 +14,6 @@ import com.actionbarsherlock.view.MenuItem;
 public class SamsungTVNotificationActivity extends SherlockFragmentActivity
 {
 
-	private static final int NOTIF_ID = 0;
 	private boolean mServiceConnected;
 
 	/** Called when the activity is first created. */
@@ -67,9 +64,6 @@ public class SamsungTVNotificationActivity extends SherlockFragmentActivity
 		stopService(intent);
 		mServiceConnected = false;
 		invalidateOptionsMenu();
-
-		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		notifMnger.cancel(NOTIF_ID);
 	}
 
 	private void startService()
@@ -78,18 +72,6 @@ public class SamsungTVNotificationActivity extends SherlockFragmentActivity
 		startService(intent);
 		mServiceConnected = true;
 		invalidateOptionsMenu();
-
-		showNotification();
-	}
-
-	private void showNotification()
-	{
-		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		final Intent intent = new Intent(this, SamsungTVNotificationActivity.class);
-		final PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
-
-		Notification notification = new Notification.Builder(this).setSmallIcon(R.drawable.notif_connected).setOngoing(true).setContentTitle(getString(R.string.notification_title)).setContentText(getString(R.string.notification_text)).setTicker(getString(R.string.notification_ticker)).setWhen(0l).setContentIntent(pendingIntent).getNotification();
-		notifMnger.notify(NOTIF_ID, notification);
 	}
 
 	@Override
