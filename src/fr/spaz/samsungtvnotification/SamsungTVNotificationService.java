@@ -12,7 +12,6 @@ import org.teleal.cling.model.meta.LocalDevice;
 import org.teleal.cling.model.meta.RemoteDevice;
 import org.teleal.cling.model.meta.Service;
 import org.teleal.cling.model.types.ServiceId;
-import org.teleal.cling.model.types.UDADeviceType;
 import org.teleal.cling.registry.DefaultRegistryListener;
 import org.teleal.cling.registry.Registry;
 import org.teleal.cling.support.messagebox.AddMessage;
@@ -33,6 +32,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.ContactsContract;
@@ -44,31 +44,35 @@ import android.util.Log;
 public class SamsungTVNotificationService extends android.app.Service
 {
 
+	private enum StateMachine
+	{
+		STOPPED, OFFLINE, NOTCONNECTED, CONNECTED
+	};
+
 	private static final String TAG = "SamsungTVNotificationService";
 	private static final String SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED";
 	private static final int NOTIF_ID = 0;
-//	private static final int SEARCH_TIME = 10000;
+	private static final int SEARCH_TIME = 10000;
 
-	private ArrayList<Device<?, ?, ?>> mList;
 	private UPnPBrowseRegistryListener mListener;
 	private UPnPBrowseServiceConnection mServiceConnection;
 	private AndroidUpnpService mUpnpService;
-
 	private EventReceiver mReceiver;
-	
+
+	private OnDeviceListChangeListener mOnDeviceListChangeListener;
+	private ArrayList<Device<?, ?, ?>> mList;
+
 	@Override
 	public void onCreate()
 	{
 		Log.i(TAG, "create service");
-		
-		mList = new ArrayList<Device<?, ?, ?>>();
 
+		mList = new ArrayList<Device<?, ?, ?>>();
 		mListener = new UPnPBrowseRegistryListener();
 		mServiceConnection = new UPnPBrowseServiceConnection();
 
-		// Start upnp browse service
-		Intent upnpService = new Intent(this, AndroidUpnpServiceImpl.class);
-		getApplicationContext().bindService(upnpService, mServiceConnection, Context.BIND_AUTO_CREATE);
+		final Intent intent = new Intent(this, AndroidUpnpServiceImpl.class);
+		bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
 
 		mReceiver = new EventReceiver();
 
@@ -76,8 +80,6 @@ public class SamsungTVNotificationService extends android.app.Service
 		filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
 		filter.addAction(SMS_RECEIVED);
 		registerReceiver(mReceiver, filter);
-
-		showNotification(0);
 	}
 
 	@Override
@@ -91,11 +93,11 @@ public class SamsungTVNotificationService extends android.app.Service
 	{
 		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		notifMnger.cancel(NOTIF_ID);
-	
+
 		Log.i(TAG, "Stop service");
 		if (null != mServiceConnection)
 		{
-			getApplicationContext().unbindService(mServiceConnection);
+			unbindService(mServiceConnection);
 			mServiceConnection = null;
 		}
 		if (null != mReceiver)
@@ -109,38 +111,61 @@ public class SamsungTVNotificationService extends android.app.Service
 	@Override
 	public IBinder onBind(Intent arg0)
 	{
-		return null;
+		return new ServiceBinder();
 	}
 
-	private void showNotification(int count)
+	private void showNotification(StateMachine state)
 	{
 		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		// final Intent intent = new Intent(this, SamsungTVNotificationActivity.class);
 		// final PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
 
-		if (count == 0)
+		Notification notification = null;
+
+		switch (state)
 		{
-			Notification notification = new Notification.Builder(this)
-					.setSmallIcon(R.drawable.notif_disconnected)
-					.setOngoing(true)
-					.setContentTitle(getString(R.string.notification_title_empty))
-					.setContentText(getString(R.string.notification_text_empty))
-					.setTicker(getString(R.string.notification_ticker_empty))
-					.setWhen(0l)
-					.getNotification();
-			notifMnger.notify(NOTIF_ID, notification);
+			case STOPPED :
+				notifMnger.cancel(NOTIF_ID);
+				break;
+
+			case OFFLINE :
+				break;
+
+			case CONNECTED :
+				notification = new Notification.Builder(this)
+						.setSmallIcon(R.drawable.notif_connected)
+						.setOngoing(true)
+						.setContentTitle(getString(R.string.notification_title))
+						.setContentText(getString(R.string.notification_text, mList.size()))
+						.setTicker(getString(R.string.notification_ticker))
+						.setWhen(0l)
+						.getNotification();
+				notifMnger.notify(NOTIF_ID, notification);
+				break;
+
+			case NOTCONNECTED :
+				notification = new Notification.Builder(this)
+						.setSmallIcon(R.drawable.notif_disconnected)
+						.setOngoing(true)
+						.setContentTitle(getString(R.string.notification_title_empty))
+						.setContentText(getString(R.string.notification_text_empty))
+						.setTicker(getString(R.string.notification_ticker_empty))
+						.setWhen(0l)
+						.getNotification();
+				notifMnger.notify(NOTIF_ID, notification);
+				break;
+
+			default :
+				break;
 		}
-		else
+	}
+
+	public void searchDevice()
+	{
+		if (null != mUpnpService)
 		{
-			Notification notification = new Notification.Builder(this)
-					.setSmallIcon(R.drawable.notif_connected)
-					.setOngoing(true)
-					.setContentTitle(getString(R.string.notification_title))
-					.setContentText(getString(R.string.notification_text, count))
-					.setTicker(getString(R.string.notification_ticker))
-					.setWhen(0l)
-					.getNotification();
-			notifMnger.notify(NOTIF_ID, notification);
+			Log.i(TAG, "Searching for devices");
+
 		}
 	}
 
@@ -152,17 +177,20 @@ public class SamsungTVNotificationService extends android.app.Service
 		{
 			mUpnpService = (AndroidUpnpService) service;
 
+			Log.v(TAG, "Notification: NOTCONNECTED");
+			showNotification(StateMachine.NOTCONNECTED);
+
 			// Refresh the list with all known devices
-			for (Device<?, ?, ?> device : mUpnpService.getRegistry().getDevices(new UDADeviceType("PersonalMessageReceiver")))
+			for (Device<?, ?, ?> device : mUpnpService.getRegistry().getDevices())
 			{
 				mListener.deviceAdded(device);
 			}
 
 			// Getting ready for future device advertisements
+			Log.v(TAG, "listener registered");
 			mUpnpService.getRegistry().addListener(mListener);
 
 			// Search asynchronously for all devices
-			// mUpnpService.getControlPoint().search(SEARCH_TIME);
 			mUpnpService.getControlPoint().search();
 		}
 
@@ -366,6 +394,7 @@ public class SamsungTVNotificationService extends android.app.Service
 
 		public void deviceAdded(final Device<?, ?, ?> device)
 		{
+			Log.v(TAG, "Device found. Search for message service");
 			if (null != device.findService(new ServiceId("samsung.com", "MessageBoxService")))
 			{
 				synchronized (mList)
@@ -383,12 +412,19 @@ public class SamsungTVNotificationService extends android.app.Service
 					}
 				}
 				Log.i(TAG, "device added: " + device.toString());
-				showNotification(mList.size());
+
+				if (null != mOnDeviceListChangeListener)
+				{
+					mOnDeviceListChangeListener.deviceListChange();
+				}
+
+				showNotification(StateMachine.CONNECTED);
 			}
 		}
 
 		public void deviceRemoved(final Device<?, ?, ?> device)
 		{
+
 			if (null != device.findService(new ServiceId("samsung.com", "MessageBoxService")))
 			{
 				synchronized (mList)
@@ -396,7 +432,40 @@ public class SamsungTVNotificationService extends android.app.Service
 					mList.remove(device);
 				}
 				Log.i(TAG, "device removed: " + device.toString());
-				showNotification(mList.size());
+				showNotification(mList.size() > 0 ? StateMachine.CONNECTED : StateMachine.NOTCONNECTED);
+
+			}
+		}
+	}
+
+	public class ServiceBinder extends Binder
+	{
+
+		public void registerListener(OnDeviceListChangeListener listener)
+		{
+			mOnDeviceListChangeListener = listener;
+		}
+
+		public ArrayList<Device<?, ?, ?>> getDeviceList()
+		{
+			return mList;
+		}
+
+		public void refresh()
+		{
+			if (null != mUpnpService)
+			{
+				Log.v(TAG, "refresh");
+				synchronized (mList)
+				{
+					mList.clear();
+				}
+				if(null!=mOnDeviceListChangeListener)
+				{
+					mOnDeviceListChangeListener.deviceListChange();
+				}
+				mUpnpService.getRegistry().removeAllRemoteDevices();
+				mUpnpService.getControlPoint().search();
 			}
 		}
 	}
