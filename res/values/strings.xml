@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">SamsungTVNotification</string>
+    <string name="app_name">TiVi Pop-Up</string>
+    <string name="activity_label">TiVi Pop-Up</string>
     
     <string name="notification_ticker">Device found</string>
-    <string name="notification_title">SamsungTVNotfication</string>
     <string name="notification_text">Number of device connected: %1$s</string>
     
     <string name="notification_ticker_empty">Starting service</string>
-    <string name="notification_title_empty">SamsungTVNotfication</string>    
     <string name="notification_text_empty">No device connected</string>
 
 </resources>

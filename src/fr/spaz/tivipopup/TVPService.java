@@ -1,5 +1,6 @@
-package fr.spaz.samsungtvnotification;
+package fr.spaz.tivipopup;
 
+import fr.spaz.tivipopup.R;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -31,7 +32,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
+import android.net.NetworkInfo;
+import android.net.NetworkInfo.DetailedState;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -41,7 +46,7 @@ import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
-public class SamsungTVNotificationService extends android.app.Service
+public class TVPService extends android.app.Service
 {
 
 	private enum StateMachine
@@ -52,12 +57,14 @@ public class SamsungTVNotificationService extends android.app.Service
 	private static final String TAG = "SamsungTVNotificationService";
 	private static final String SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED";
 	private static final int NOTIF_ID = 0;
+	@SuppressWarnings("unused")
 	private static final int SEARCH_TIME = 10000;
 
 	private UPnPBrowseRegistryListener mListener;
 	private UPnPBrowseServiceConnection mServiceConnection;
 	private AndroidUpnpService mUpnpService;
 	private EventReceiver mReceiver;
+	private WifiReceiver mWifiReceiver;
 
 	private OnDeviceListChangeListener mOnDeviceListChangeListener;
 	private ArrayList<Device<?, ?, ?>> mList;
@@ -70,12 +77,27 @@ public class SamsungTVNotificationService extends android.app.Service
 		mList = new ArrayList<Device<?, ?, ?>>();
 		mListener = new UPnPBrowseRegistryListener();
 		mServiceConnection = new UPnPBrowseServiceConnection();
+		
+		final WifiManager wifiManager = (WifiManager)getSystemService(WIFI_SERVICE);
+		final WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+		DetailedState state = WifiInfo.getDetailedStateOf(wifiInfo.getSupplicantState());
+		Log.i(TAG, "wifi state: " + state);
+		
+		
+		mWifiReceiver = new WifiReceiver();
+		final IntentFilter wifiFilter = new IntentFilter();
+		wifiFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+		wifiFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+		wifiFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+		wifiFilter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+		registerReceiver(mWifiReceiver, wifiFilter);
+		
+		
 
 		final Intent intent = new Intent(this, AndroidUpnpServiceImpl.class);
 		bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
 
 		mReceiver = new EventReceiver();
-
 		final IntentFilter filter = new IntentFilter();
 		filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
 		filter.addAction(SMS_RECEIVED);
@@ -104,6 +126,11 @@ public class SamsungTVNotificationService extends android.app.Service
 		{
 			unregisterReceiver(mReceiver);
 			mReceiver = null;
+		}
+		if (null != mWifiReceiver)
+		{
+			unregisterReceiver(mWifiReceiver);
+			mWifiReceiver = null;
 		}
 		super.onDestroy();
 	}
@@ -135,7 +162,7 @@ public class SamsungTVNotificationService extends android.app.Service
 				notification = new Notification.Builder(this)
 						.setSmallIcon(R.drawable.notif_connected)
 						.setOngoing(true)
-						.setContentTitle(getString(R.string.notification_title))
+						.setContentTitle(getString(R.string.app_name))
 						.setContentText(getString(R.string.notification_text, mList.size()))
 						.setTicker(getString(R.string.notification_ticker))
 						.setWhen(0l)
@@ -147,7 +174,7 @@ public class SamsungTVNotificationService extends android.app.Service
 				notification = new Notification.Builder(this)
 						.setSmallIcon(R.drawable.notif_disconnected)
 						.setOngoing(true)
-						.setContentTitle(getString(R.string.notification_title_empty))
+						.setContentTitle(getString(R.string.app_name))
 						.setContentText(getString(R.string.notification_text_empty))
 						.setTicker(getString(R.string.notification_ticker_empty))
 						.setWhen(0l)
@@ -351,6 +378,23 @@ public class SamsungTVNotificationService extends android.app.Service
 		}
 	}
 
+	public class WifiReceiver extends BroadcastReceiver
+	{
+
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction()))
+			{
+				NetworkInfo info = (NetworkInfo) intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+				if (info.getState().equals(NetworkInfo.State.CONNECTED))
+				{
+					
+				}
+			}
+		}
+	}
+
 	public class UPnPBrowseRegistryListener extends DefaultRegistryListener
 	{
 
@@ -395,7 +439,7 @@ public class SamsungTVNotificationService extends android.app.Service
 		public void deviceAdded(final Device<?, ?, ?> device)
 		{
 			Log.v(TAG, "Device found. Search for message service");
-			if (null != device.findService(new ServiceId("samsung.com", "MessageBoxService")))
+			if (null != device.findService(new ServiceId("samsung.com", "MessageBoxService")) && device.isFullyHydrated())
 			{
 				synchronized (mList)
 				{
@@ -460,7 +504,7 @@ public class SamsungTVNotificationService extends android.app.Service
 				{
 					mList.clear();
 				}
-				if(null!=mOnDeviceListChangeListener)
+				if (null != mOnDeviceListChangeListener)
 				{
 					mOnDeviceListChangeListener.deviceListChange();
 				}

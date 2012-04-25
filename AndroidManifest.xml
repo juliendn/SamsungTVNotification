@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="fr.spaz.samsungtvnotification"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    package="fr.spaz.tivipopup"
+    android:versionCode="101"
+    android:versionName="1.01" >
 
     <uses-sdk
         android:minSdkVersion="11"
@@ -16,24 +16,23 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_MMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    
 
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
         <activity
-            android:name=".SamsungTVNotificationActivity"
-            android:label="@string/app_name"
+            android:name=".TVPActivity"
+            android:label="@string/activity_label"
             android:theme="@android:style/Theme.Holo.Light" >
-            <intent-filter>
+            <intent-filter android:label="@string/app_name" >
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name=".SamsungTVNotificationService" />
-        <service android:name="org.teleal.cling.android.AndroidUpnpServiceImpl"/>
+        <service android:name=".TVPService" />
+        <service android:name="org.teleal.cling.android.AndroidUpnpServiceImpl" />
     </application>
 
 </manifest>
