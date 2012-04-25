@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="notification_ticker">TV trouvée</string>
+    <string name="notification_text">Nombre de TV connecté: %1$s</string>
+    
+    <string name="notification_ticker_empty">Démarrage du service</string>
+        <string name="notification_text_empty">Aucune TV connectée</string>
+
+</resources>

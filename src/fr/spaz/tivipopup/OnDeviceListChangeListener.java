@@ -1,4 +1,6 @@
-package fr.spaz.samsungtvnotification;
+package fr.spaz.tivipopup;
+
+import fr.spaz.tivipopup.R;
 
 public interface OnDeviceListChangeListener
 {
