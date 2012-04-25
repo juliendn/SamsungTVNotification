@@ -38,6 +38,7 @@ import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.ContactsContract;
@@ -159,27 +160,29 @@ public class TVPService extends android.app.Service
 				break;
 
 			case CONNECTED :
-				notification = new Notification.Builder(this)
-						.setSmallIcon(R.drawable.notif_connected)
-						.setOngoing(true)
-						.setContentTitle(getString(R.string.app_name))
-						.setContentText(getString(R.string.notification_text, mList.size()))
-						.setTicker(getString(R.string.notification_ticker))
-						.setWhen(0l)
-						.getNotification();
-				notifMnger.notify(NOTIF_ID, notification);
+//				notification = new Notification.Builder(this)
+//						.setSmallIcon(R.drawable.notif_connected)
+//						.setOngoing(true)
+//						.setContentTitle(getString(R.string.app_name))
+//						.setContentText(getString(R.string.notification_text, mList.size()))
+//						.setTicker(getString(R.string.notification_ticker))
+//						.setWhen(0l)
+//						.getNotification();
+//				notifMnger.notify(NOTIF_ID, notification);
+				notifMnger.notify(NOTIF_ID, NotificationHelper.getConnectedNotification(this, mList.size()));
 				break;
 
 			case NOTCONNECTED :
-				notification = new Notification.Builder(this)
-						.setSmallIcon(R.drawable.notif_disconnected)
-						.setOngoing(true)
-						.setContentTitle(getString(R.string.app_name))
-						.setContentText(getString(R.string.notification_text_empty))
-						.setTicker(getString(R.string.notification_ticker_empty))
-						.setWhen(0l)
-						.getNotification();
-				notifMnger.notify(NOTIF_ID, notification);
+//				notification = new Notification.Builder(this)
+//						.setSmallIcon(R.drawable.notif_disconnected)
+//						.setOngoing(true)
+//						.setContentTitle(getString(R.string.app_name))
+//						.setContentText(getString(R.string.notification_text_empty))
+//						.setTicker(getString(R.string.notification_ticker_empty))
+//						.setWhen(0l)
+//						.getNotification();
+//				notifMnger.notify(NOTIF_ID, notification);
+				notifMnger.notify(NOTIF_ID, NotificationHelper.getNotConnectedNotification(this));
 				break;
 
 			default :
@@ -292,7 +295,20 @@ public class TVPService extends android.app.Service
 
 				// callee
 				final String calleeNumber = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number();
-				final String callee = "";
+				String callee = Build.MODEL;
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+				{
+					final Uri uri = ContactsContract.Profile.CONTENT_URI;
+					final Cursor cursor = getContentResolver().query(uri, new String[]{ContactsContract.Profile.DISPLAY_NAME}, null, null, null);
+					if (cursor.moveToFirst())
+					{
+						callee = cursor.getString(cursor.getColumnIndex(ContactsContract.Profile.DISPLAY_NAME));
+						Log.i(TAG, "name: " + callee);
+					}
+					cursor.close();
+				}
+				 
+				
 
 				// caller
 				final Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(callerNumber));
@@ -327,7 +343,18 @@ public class TVPService extends android.app.Service
 
 				// callee
 				final String calleeNumber = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number();
-				final String callee = "";
+				String callee = Build.MODEL;
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+				{
+					final Uri uri = ContactsContract.Profile.CONTENT_URI;
+					final Cursor cursor = getContentResolver().query(uri, new String[]{ContactsContract.Profile.DISPLAY_NAME}, null, null, null);
+					if (cursor.moveToFirst())
+					{
+						callee = cursor.getString(cursor.getColumnIndex(ContactsContract.Profile.DISPLAY_NAME));
+						Log.i(TAG, "name: " + callee);
+					}
+					cursor.close();
+				}
 
 				// caller
 				final Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(callerNumber));
