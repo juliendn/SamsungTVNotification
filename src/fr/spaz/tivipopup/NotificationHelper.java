@@ -35,7 +35,7 @@ public class NotificationHelper
 		{
 			notification = new Notification(icon, ticker, when);
 			notification.setLatestEventInfo(context, title, text, contentIntent);
-			notification.defaults = Notification.DEFAULT_LIGHTS|Notification.DEFAULT_VIBRATE;
+			notification.defaults = Notification.DEFAULT_LIGHTS;
 			notification.sound = null;
 //			notification.defaults = Notification.DEFAULT_ALL;
 			notification.flags = Notification.FLAG_ONGOING_EVENT;
