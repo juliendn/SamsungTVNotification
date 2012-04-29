@@ -8,6 +8,7 @@ import android.os.Build;
 
 public class NotificationHelper
 {
+	@SuppressWarnings("deprecation")
 	static Notification getConnectedNotification(Context context, int nbDevice)
 	{
 		Notification notification = null;
@@ -44,6 +45,7 @@ public class NotificationHelper
 
 	}
 
+	@SuppressWarnings("deprecation")
 	static Notification getNotConnectedNotification(Context context)
 	{
 		Notification notification = null;

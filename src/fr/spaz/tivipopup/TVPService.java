@@ -1,6 +1,5 @@
 package fr.spaz.tivipopup;
 
-import fr.spaz.tivipopup.R;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -23,7 +22,6 @@ import org.teleal.cling.support.messagebox.model.MessageIncomingCall;
 import org.teleal.cling.support.messagebox.model.MessageSMS;
 import org.teleal.cling.support.messagebox.model.NumberName;
 
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -78,13 +76,12 @@ public class TVPService extends android.app.Service
 		mList = new ArrayList<Device<?, ?, ?>>();
 		mListener = new UPnPBrowseRegistryListener();
 		mServiceConnection = new UPnPBrowseServiceConnection();
-		
-		final WifiManager wifiManager = (WifiManager)getSystemService(WIFI_SERVICE);
+
+		final WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
 		final WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 		DetailedState state = WifiInfo.getDetailedStateOf(wifiInfo.getSupplicantState());
 		Log.i(TAG, "wifi state: " + state);
-		
-		
+
 		mWifiReceiver = new WifiReceiver();
 		final IntentFilter wifiFilter = new IntentFilter();
 		wifiFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
@@ -92,8 +89,6 @@ public class TVPService extends android.app.Service
 		wifiFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
 		wifiFilter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
 		registerReceiver(mWifiReceiver, wifiFilter);
-		
-		
 
 		final Intent intent = new Intent(this, AndroidUpnpServiceImpl.class);
 		bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -145,10 +140,6 @@ public class TVPService extends android.app.Service
 	private void showNotification(StateMachine state)
 	{
 		final NotificationManager notifMnger = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		// final Intent intent = new Intent(this, SamsungTVNotificationActivity.class);
-		// final PendingIntent pendingIntent = PendingIntent.getActivity(this, NOTIF_ID, intent, Intent.FLAG_ACTIVITY_NEW_TASK);
-
-		Notification notification = null;
 
 		switch (state)
 		{
@@ -160,28 +151,10 @@ public class TVPService extends android.app.Service
 				break;
 
 			case CONNECTED :
-//				notification = new Notification.Builder(this)
-//						.setSmallIcon(R.drawable.notif_connected)
-//						.setOngoing(true)
-//						.setContentTitle(getString(R.string.app_name))
-//						.setContentText(getString(R.string.notification_text, mList.size()))
-//						.setTicker(getString(R.string.notification_ticker))
-//						.setWhen(0l)
-//						.getNotification();
-//				notifMnger.notify(NOTIF_ID, notification);
 				notifMnger.notify(NOTIF_ID, NotificationHelper.getConnectedNotification(this, mList.size()));
 				break;
 
 			case NOTCONNECTED :
-//				notification = new Notification.Builder(this)
-//						.setSmallIcon(R.drawable.notif_disconnected)
-//						.setOngoing(true)
-//						.setContentTitle(getString(R.string.app_name))
-//						.setContentText(getString(R.string.notification_text_empty))
-//						.setTicker(getString(R.string.notification_ticker_empty))
-//						.setWhen(0l)
-//						.getNotification();
-//				notifMnger.notify(NOTIF_ID, notification);
 				notifMnger.notify(NOTIF_ID, NotificationHelper.getNotConnectedNotification(this));
 				break;
 
@@ -307,8 +280,6 @@ public class TVPService extends android.app.Service
 					}
 					cursor.close();
 				}
-				 
-				
 
 				// caller
 				final Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(callerNumber));
@@ -416,7 +387,7 @@ public class TVPService extends android.app.Service
 				NetworkInfo info = (NetworkInfo) intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
 				if (info.getState().equals(NetworkInfo.State.CONNECTED))
 				{
-					
+
 				}
 			}
 		}
